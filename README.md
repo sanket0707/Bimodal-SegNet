@@ -8,8 +8,8 @@ https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedriv
 
 # Dataset structure:
 
-|-- ESD-1 (training)
-    |-- conditions_1
+####|-- ESD-1 (training)
+####    |-- conditions_1
         |-- RGB
             |-- images                   (raw RGB images)
             |-- masks                    (annotated masks)
