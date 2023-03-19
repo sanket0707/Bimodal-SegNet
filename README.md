@@ -18,8 +18,8 @@ https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedriv
         |-- events
             |-- left.mat                 (events info from left event camera, RGBD info, camera's movement info)
             |-- right.mat                (events info from right event camera, RGBD info, camera's movement info)
-            |-- events_frame.mat         (synchronous left and right image frames tranformed from RGBD coordinate)
-            |-- mask_events_frame.mat    (synchronous left and right masks tranformed from RGBD coordinate)
+            |-- events_frame.mat         (synchronous left and right image frames transformed from RGBD coordinate)
+            |-- mask_events_frame.mat    (synchronous left and right masks transformed from RGBD coordinate)
     |-- conditions_2
         |-- ...
     ...
@@ -37,6 +37,7 @@ https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedriv
     |-- conditions_2
         |-- ...
     ...
+
 
 
 # Getting Started
