@@ -17,8 +17,7 @@ def Event_frames_Deeplab(n_classes=10, IMG_HEIGHT=256, IMG_WIDTH=256, IMG_CHANNE
     e = event_input
  
  
-########################################################################################
-   
+  
    
    # Contraction path for standard frames
     c1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(s)
@@ -46,7 +45,7 @@ def Event_frames_Deeplab(n_classes=10, IMG_HEIGHT=256, IMG_WIDTH=256, IMG_CHANNE
     c5 = Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(c5)
 
 
-######################################################################################
+
     
     # Contraction path for Event frames
     E1 = Conv2D(16, (3, 3), activation='relu', kernel_initializer='he_normal', padding='same')(e)
@@ -76,7 +75,7 @@ def Event_frames_Deeplab(n_classes=10, IMG_HEIGHT=256, IMG_WIDTH=256, IMG_CHANNE
     
     
     
-###################################################################################################
+
    
    
    # Feature concatenation layers
@@ -86,7 +85,7 @@ def Event_frames_Deeplab(n_classes=10, IMG_HEIGHT=256, IMG_WIDTH=256, IMG_CHANNE
     cE4 = concatenate([c4, E4])
 
 
-###################################################################################################
+
   
   
    # Dilated Spatial Pyramid Pooling
@@ -100,7 +99,6 @@ def Event_frames_Deeplab(n_classes=10, IMG_HEIGHT=256, IMG_WIDTH=256, IMG_CHANNE
     X = convolution_block(x, kernel_size=1)
     
 
- ####################################################################################################
   
   
   # Expansive path
