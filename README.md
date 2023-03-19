@@ -3,12 +3,10 @@
 # Cite the article:
 
 
-
 # Dataset repository:
 https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedrive.aspx?id=%2Fpersonal%2F100049863%5Fku%5Fac%5Fae%2FDocuments%2FESD&ga=1
 
 # Dataset structure:
-
 
 |-- ESD-1 (training)
     |-- conditions_1
@@ -37,7 +35,3 @@ https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedriv
     |-- conditions_2
         |-- ...
     ...
-
-
-
-# Getting Started
