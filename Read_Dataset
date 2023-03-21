@@ -1,0 +1,480 @@
+
+#read dependancies
+    
+from __future__ import division
+import os.path as osp
+
+import math
+import shutil
+import os
+import io
+import time 
+import csv
+import sys
+import random 
+import glob
+import pandas as pd
+import numpy
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+##------------------t
+import torch
+from torch import nn
+import torch.nn as nn 
+import torch.optim as optim
+from torch import autograd
+from torch.autograd import Variable
+import torch.nn.functional as F
+from torch.nn import Sequential, Linear, ReLU
+from torch.nn import Sequential as Seq, Dropout, Linear as Lin, BatchNorm1d as BN, ReLU
+
+
+import torch_scatter
+import torch_geometric
+import torch_geometric.transforms as T
+from torch_geometric.utils import normalized_cut
+from torch_geometric.nn import max_pool, max_pool_x, graclus, global_mean_pool, GCNConv,  global_mean_pool, SAGEConv
+from torch_geometric.nn.conv import TransformerConv
+from torch_geometric.nn.pool import voxel_grid
+from torch_geometric.transforms import Cartesian
+from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
+from torch_geometric.data import InMemoryDataset, download_url
+import torch_geometric.nn as pyg_nn
+import torch_geometric.utils as pyg_utils
+from torch_geometric.nn.pool import radius_graph
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from collections.abc import Sequence
+from collections import Counter
+from sklearn.utils import compute_class_weight
+from torch import Tensor
+try:
+    import torch_cluster
+except ImportError:
+    torch_cluster = None
+import time
+
+
+import pandas
+from sklearn import model_selection
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+
+
+
+
+
+
+torch.cuda.empty_cache()
+torch.backends.cudnn.benchmark=False # should use GPU or not
+
+#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+#Function and classess
+class FocalLoss(nn.Module):
+    '''Multi-class Focal loss implementation'''
+    def __init__(self, gamma=0.5, weight=None):
+        super(FocalLoss, self).__init__()
+        self.gamma = gamma
+        self.weight = weight
+
+    def forward(self, input, target):
+        """
+        input: [N, C]
+        target: [N, ]
+        """
+        logpt = F.log_softmax(input, dim=1)
+        pt = torch.exp(logpt)
+        logpt = (1-pt)**self.gamma * logpt
+        loss = F.nll_loss(logpt, target, self.weight)
+        return loss
+
+
+def TicTocGenerator():
+    # Generator that returns time differences
+    ti = 0           # initial time
+    tf = time.time() # final time
+    while True:
+        ti = tf
+        tf = time.time()
+        yield tf-ti # returns the time difference
+
+TicToc = TicTocGenerator() # create an instance of the TicTocGen generator
+
+# This will be the main function through which we define both tic() and toc()
+def toc(tempBool=True):
+    # Prints the time difference yielded by generator instance TicToc
+    tempTimeInterval = next(TicToc)
+    if tempBool:
+        print( "Elapsed time: %f seconds.\n" %tempTimeInterval )
+
+def tic():
+    # Records a time in TicToc, marks the beginning of a time interval
+    toc(False)
+    
+def TRAINING_MODULE(model, number_of_epoch, train_loader, FOLDERTOSAVE): 
+    model.train()
+
+    i=0
+    epoch_losses = []
+    print ("Training will start now")
+    for epoch in range(number_of_epoch):
+        print("Epoch", epoch)
+        epoch_loss = 0
+        start=time.time()    
+        for i, data in enumerate(train_loader):
+            data = data.to(device)
+            optimizer.zero_grad()
+    
+            # print ("data.x", data)
+   
+            end_point = model( data.x, data.pos, data.batch)
+            # print("end-point", end_point)
+            # print("end-data.y", data.y)
+
+            loss=loss_func(end_point, data.y) 
+            # loss=F.nll_loss(end_point, data.y) 
+
+            pred = end_point.max(1)[1]
+            acc = (pred.eq(data.y).sum().item())/len(data.y)
+
+            loss.backward()
+            optimizer.step() 
+            epoch_loss += loss.detach().item()
+            i=i+1
+        epoch_loss /= (i + 1)
+        end = time.time()
+        print('Epoch {}, loss {:.4f}'.format(epoch, epoch_loss), ' Elapsed time: ', end-start)
+        epoch_losses.append(epoch_loss)
+        torch.save(model.state_dict(), FOLDERTOSAVE+'model_weights.pth')
+        torch.save(model, FOLDERTOSAVE+'model.pkl')
+    #     toc()
+    return epoch_losses
+def TESTING_MODULE(model, test_loader, descrpt):
+    model.eval()
+
+    correct = 0
+    mov_correct=0
+    # T_label=0
+    # T_label00=0
+    # P_label00=0
+    # P_label0=0
+    GT=[]
+    prediction=[]
+    # qqqqqqqq=[]
+    id_dataaa=[]
+    xd_dataaa=[]
+    yd_dataaa=[]
+    td_dataaa=[]
+    torg=[]
+    labeld_dataaa=[]
+    for i, data in enumerate(test_loader):
+        id_dataaa.append(data.id_data)
+        xd_dataaa.append(data.x[:,0])
+        yd_dataaa.append(data.x[:,1])
+        td_dataaa.append(data.x[:,2])
+        labeld_dataaa.append(data.y)
+        torg.append(data.t_org)
+        
+        GT.append(data.y)
+        data = data.to(device)
+        end_point = model(data.x, data.pos, data.batch)
+        loss = loss_func(end_point, data.y)
+        pred = end_point.max(1)[1]
+
+        # T_label1=(data.y.eq(1).sum().item())
+
+        # T_label+=T_label1
+        # T_label0=(data.y.eq(0).sum().item())
+        # T_label00+=T_label0
+        # P_label1=(pred.eq(1).sum().item())
+        # P_label0+=P_label1
+        # P_label0=(pred.eq(0).sum().item())
+        # P_label00+=P_label0
+
+        acc = (pred.eq(data.y).sum().item())/len(data.y)
+        correct += acc
+
+
+        prediction.append(pred)
+        
+    torch.save([numpy.hstack(id_dataaa), numpy.hstack(xd_dataaa), numpy.hstack(yd_dataaa),numpy.hstack(td_dataaa)
+                , numpy.hstack(torg),  torch.cat(GT), torch.cat(prediction)], descrpt)
+    return [GT, prediction]
+def METRICS_MODULE(GT_lbls_,argmax_Y_, csvname ):
+    tn, fp, fn, tp=confusion_matrix(torch.cat(GT_lbls_).to('cpu'),torch.cat(argmax_Y_).to('cpu')).ravel()
+    Tp_matrix=tp
+    Fp_matrix=fp
+    Fn_matrix=fn
+    Tn_matrix=tn
+    print('Tp_matrix_test:',(Tp_matrix))
+    print('Fp_matrix_test:' ,(Fp_matrix))
+    print('Fn_matrix_test:' ,(Fn_matrix))
+    print('Tn_matrix_test:', (Tn_matrix))
+    Precision_negative=100*Tn_matrix/(Tn_matrix+Fn_matrix)
+    Precision=100*Tp_matrix/(Tp_matrix+Fp_matrix)
+    Accuracy=100*((Tp_matrix+Tn_matrix)/(Tp_matrix+Tn_matrix+Fp_matrix+Fn_matrix))
+    F1_score=(2*Precision*Accuracy)/(Precision+Accuracy)
+    Recall_score=100*Tp_matrix/(Tp_matrix+Fn_matrix)
+    Specificity=100*(Tn_matrix)/(Tn_matrix+Fp_matrix)
+    print('Precision_negative on the testing set: {:.4f}%'.format(Precision_negative))
+    print('Precision on the t0esting set: {:.4f}%'.format(Precision))
+    print('Recall on the testing set: {:.4f}%'.format(Recall_score))
+    print('F1 score on the testing set: {:.4f}%'.format(F1_score))
+    print('Accuracy on the testing set: {:.4f}%'.format(Accuracy))
+    print('Specificity on the testing set: {:.4f}%'.format(Specificity))
+
+
+    with open(csvname, 'w', newline='') as csvFile:
+        writer = csv.writer(csvFile)
+        writer.writerow(['Tp_matrix_test:',(Tp_matrix)])
+        writer.writerow(['Fp_matrix_test:' ,(Fp_matrix)])
+        writer.writerow(['Fn_matrix_test:' ,(Fn_matrix)])
+        writer.writerow(['Tn_matrix_test:', (Tn_matrix)])
+
+        writer.writerow(['Precision_negative on the testing set',(Precision_negative)])
+        writer.writerow(['Precision on the t0esting set:',(Precision)])
+        writer.writerow(['Recall on the testing set: ',(Recall_score)])
+        writer.writerow(['F1 score on the testing set:',(F1_score)])
+        writer.writerow(['Accuracy on the testing set:',(Accuracy)])
+        writer.writerow(['Specificity on the testing set: ',(Specificity)])
+    
+#-------------------------------------------------------------------------------------------------------------------------------------------------
+#deine my own dataset
+
+def files_exist(files):
+    return all([osp.exists(f) for f in files])
+def Slice_Raw_Events_onTemporal(deltatime, seq):
+    seq_data=[]
+    t_start=0
+    deltatime=deltatime
+    # plt.plot(seq[0][: ,2]-seq[0][0 ,2])
+    # plt.show()
+    tdata1=(seq[: ,4]-seq[0 ,4])/1000000
+    # print("1",  round(max(tdata1)/deltatime))
+    for i in range (0,round(max(tdata1)/deltatime)):
+        t_start=i*deltatime
+        t_end=t_start+deltatime
+        index=np.logical_and(tdata1<t_end, tdata1>=t_start )
+        seq_data1=seq[index]
+        seq_data.append(seq_data1)
+    return seq_data
+
+def Process_creat_Graphs(seq_data, alpha):
+
+    # ind=  (seq_data[:, 3]>=100) & (seq_data[:, 3]<=250) & (seq_data[:, 4]>=50) & (seq_data[:, 4]<=150)
+
+    xdata=seq_data [:, 1]*125/(346*125)
+    id_data=(seq_data[:, 0])
+    t_org=seq_data [:, 4]
+    ydata=seq_data [:, 2]*125/(125*260)
+    # if len(seq_data[0])>0:
+    tdata=alpha*((seq_data [:, 4]-seq_data [0, 4])/(1000000))*(1/3) #3 is the time slice
+    # if len(seq_data[0])==0:
+        # tdata=alpha*(seq_data [:, 2])*100
+
+
+    pdata=seq_data [:, 1]
+    ldata=seq_data [:, 5]
+
+    num_nodes = 1000
+    space = 20
+    spt_distance = 300.0
+    num_steps = 4
+    growths = [1, 3]
+
+    x2 = torch.tensor(pdata).view(-1,1).float()
+    y2 = torch.tensor(ldata).long()
+    c1 = torch.tensor(xdata).double()#.float()
+    c2 = torch.tensor(ydata).double()#.float()
+    c3 = torch.tensor(tdata).double()#.float()
+
+
+    pos2 = torch.stack((c1,  c2 , c3),1)#.view(-1,3)
+
+    edges = radius_graph(pos2, r=spt_distance, max_num_neighbors=20,flow='source_to_target',num_workers= 7)
+    seqid=0
+    graph_event= Data(x=pos2, y=y2,edge_index= edges, pos=pos2, id_data=id_data, t_org=t_org, seqid=seqid)
+    max_value=20
+
+    graph_event_updated=graph_event
+    dataset1=(graph_event_updated)
+   
+    return dataset1
+
+class MyOwnDataset(InMemoryDataset):
+    def __init__(self, root, transform=None, pre_transform=None):
+        super(MyOwnDataset, self).__init__(root, transform, pre_transform )
+
+        self._indices: Optional[Sequence] = None
+        
+    def indices(self) -> Sequence:
+        return range(self.len()) if self._indices is None else self._indices
+    @property
+    def raw_file_names(self):
+        # filenames = glob.glob(os.path.join(self.raw_dir, '*.bin'))
+        filenames = glob.glob(os.path.join(self.raw_dir, '*.xlsx'))
+        print("filenames", filenames)
+        file = [f.split('/')[-1] for f in filenames]
+        return file
+
+    @property
+
+    def processed_file_names(self):
+        filenames = glob.glob(os.path.join(self.raw_dir , '../processed/', '*e.pt'))
+        #file = [f.split('/')[-1] for f in filenames]
+        file =[ os.path.basename(f) for f in filenames]
+        #print("have your reachd to file", file)
+        
+        saved_file = [f.replace('.pt','.pt') for f in file]
+        return saved_file
+    
+    def __len__(self):
+        return len(self.processed_file_names)
+    def indices(self) -> Sequence:
+        return range(self.__len__()) if self._indices is None else self._indices
+    
+    def download(self):
+        if files_exist(self.raw_paths):
+            return print('No found data!!!!!!!')
+
+
+    def process(self):
+        data=[]
+        Numberofdata=6
+        import numpy as np
+        seq=[]
+        pp=[]
+        # print("Yusraaaaaaa HERE")
+        for raw_path in self.raw_paths:
+
+            
+            sample=raw_path
+            WS = pd.read_excel(sample)
+            pp1 = np.array(WS, dtype=np.float)
+            # pp1=(np.fromfile(sample,  dtype=np.float))
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11,", pp1.shape)
+
+            # pp=numpy.reshape(pp1[0], (Numberofdata, int(len(pp1)/Numberofdata)), order='C')
+            # pp=numpy.transpose(pp)
+
+            # sq1=pp
+            # sq = numpy.reshape(sq1, (1, int(pp.shape[0]), (pp.shape[1])))
+            # seq.append(numpy.concatenate(sq))
+
+            seq=(pp1)
+            print("seq0000",seq[:,1])
+            plt.plot((seq[:,4]-seq[0,4])/1000000)
+            plt.show()
+
+
+            # data notation for Sanket
+            # seq[:,0] == id
+            # seq[:,1] == x
+            # seq[:,2] == y
+            # seq[:,3] == p
+            # seq[:,4] == time
+            # seq[:,5] == label
+
+            deltatime=3
+            content = Slice_Raw_Events_onTemporal(deltatime, seq)
+            print("content", len(content))
+
+            for sample1 in range(0, len(content)-1):
+                print(sample1, len(content[sample1]))
+                # data=[]
+                if len(content[sample1]>0):
+                    data=Process_creat_Graphs(content[sample1], 1)
+                    # print("1",data)
+                    if self.pre_filter is not None and not self.pre_filter(data):
+                        continue
+
+                    if self.pre_transform is not None:
+                        data = self.pre_transform(data)
+                    #saved_name = raw_path.split('/')[-1].replace('.xlsx','.pt')
+                    saved_name = "Labelled_events_sample.pt"
+                    print("have you reached here?",saved_name)
+                    torch.save(data, osp.join(self.processed_dir, "sample_"+ str(sample1)+"_"+saved_name  ))
+
+                    print("GRAPH DATA ARE SAVED!!!!!!!!!!!!!!!!!!!!!! in ", self.processed_dir)
+
+        # self.graphs=(data)
+    def get(self, idx):
+        # print("i'm in get")
+        data = torch.load(osp.join(self.processed_paths[idx]))
+
+        return data
+
+
+##---------------------------------------------------------------------------------------------------------------------
+# Modeling Parameters and Folders to save
+# ---------------------------------------------------------------------------------------------------------------------  
+print("INITIALIZATION")
+seed_val = int(2)
+print("Random Seed ID is: ", seed_val)
+random.seed(seed_val)
+numpy.random.seed(seed_val)
+torch.manual_seed(seed_val)
+os.environ['PYTHONHASHSEED'] = str(seed_val)
+
+# device = torch.device(  'cpu')
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("device", device)
+
+learningRate=0.001
+number_of_epoch=150
+
+#-----------------------
+# Path='/home/kucarst3-dlws/Desktop'
+# Path='/media/kucarst3-dlws/HDD4/3NEW_MoSeg_Model_5000_dataset_simple/'
+#Path="/media/kucarst3-dlws/HDD3/YS_02_Jan_23_GTNN_3L/dataset/"
+#Path="C:/Users/sanke/OneDrive/Documents/AI_2023/Academic_AI/Reserch_Paper_Publish_Preparation/Second_Paper_GNN/YS_02_Jan_23_GTNN_3L/YS_02_Jan_23_GTNN_3L/dataset/"
+
+Path=r'C:\Users\sanke\OneDrive\Documents\AI_2023\Academic_AI\Reserch_Paper_Publish_Preparation\Second_Paper_GNN\YS_02_Jan_23_GTNN_3L\YS_02_Jan_23_GTNN_3L\dataset\seq00'
+print(Path)
+train_path_seq00_p1 = osp.join(Path)
+print("!11111111",train_path_seq00_p1)
+
+
+train_data_aug = T.Compose([T.Cartesian(cat=False), T.RandomFlip(axis=0, p=0.3), T.RandomScale([0.95,0.999]) ])
+test_data_aug = T.Compose([T.Cartesian(cat=False), T.RandomFlip(axis=0, p=0.3), T.RandomScale([0.95,0.999]) ])
+
+##---------------------------------------------------------------------------------------------------------------------
+# STAGE A: CREATING TRAINING AND TESTING DATASET
+# ---------------------------------------------------------------------------------------------------------------------  
+print("STAGE A: CREATING TRAINING AND TESTING DATASET")
+
+train_seq00_p1 = MyOwnDataset(train_path_seq00_p1, transform=train_data_aug)      #### transform=T.Cartesian()
+#train_seq00_p2 = MyOwnDataset(train_path_seq00_p1, transform=train_data_aug)      #### transform=T.Cartesian()
+#train_seq00_p3 = MyOwnDataset(train_path_seq00_p1, transform=train_data_aug)      #### transform=T.Cartesian()
+#train_seq00_p4 = MyOwnDataset(train_path_seq00_p1, transform=train_data_aug)      #### transform=T.Cartesian()
+print('train_seq00_p1', (train_seq00_p1))
+
+print('train_seq00_p1', len(train_seq00_p1))
+
+
+
+
+#to visualize a sample data
+# print(train_seq00_p1[4].x[:,0], train_seq00_p1[4].x[:,1])
+plt.plot(train_seq00_p1[4].x[:,0], train_seq00_p1[4].x[:,1], '.',color='yellow')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==1,0], train_seq00_p1[4].x[train_seq00_p1[4].y==1,1], '.', color='red')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==2,0], train_seq00_p1[4].x[train_seq00_p1[4].y==2,1], '.',color='blue')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==3,0], train_seq00_p1[4].x[train_seq00_p1[4].y==3,1], '.',color='green')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==4,0], train_seq00_p1[4].x[train_seq00_p1[4].y==4,1], '.',color='black')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==5,0], train_seq00_p1[4].x[train_seq00_p1[4].y==5,1], '.',color='cyan')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==6,0], train_seq00_p1[4].x[train_seq00_p1[4].y==6,1], '.',color= 'magenta')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==7,0], train_seq00_p1[4].x[train_seq00_p1[4].y==7,1], '.',color='gray')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==8,0], train_seq00_p1[4].x[train_seq00_p1[4].y==8,1], '.',color='orange')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==9,0], train_seq00_p1[4].x[train_seq00_p1[4].y==9,1], '.',color='brown')
+plt.plot(train_seq00_p1[4].x[train_seq00_p1[4].y==10,0], train_seq00_p1[4].x[train_seq00_p1[4].y==10,1], '.',color='purple')
+
+
+plt.show()
+
+
