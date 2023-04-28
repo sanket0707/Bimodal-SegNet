@@ -1,0 +1,51 @@
+import torch
+import torch.nn as nn
+
+# Define self-attention module
+class SelfAttention(nn.Module):
+    def __init__(self, in_channels):
+        super(SelfAttention, self).__init__()
+        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, x):
+        batch_size, channels, height, width = x.size()
+        # Compute query, key, and value tensors
+        query = self.query_conv(x).view(batch_size, -1, width * height).permute(0, 2, 1)
+        key = self.key_conv(x).view(batch_size, -1, width * height)
+        value = self.value_conv(x).view(batch_size, -1, width * height)
+        # Compute self-attention map
+        energy = torch.bmm(query, key)
+        attention = self.softmax(energy)
+        # Compute attended feature map
+        out = torch.bmm(value, attention.permute(0, 2, 1))
+        out = out.view(batch_size, channels, height, width)
+        return out
+
+# Define spatial pyramidal pooling block
+class SpatialPyramidPooling(nn.Module):
+    def __init__(self, in_channels, pool_sizes=[1, 2, 4]):
+        super(SpatialPyramidPooling, self).__init__()
+        self.pool_sizes = pool_sizes
+        self.pool_layers = nn.ModuleList()
+        for pool_size in pool_sizes:
+            self.pool_layers.append(nn.AdaptiveMaxPool2d((pool_size, pool_size)))
+        self.conv = nn.Conv2d(in_channels * len(pool_sizes), in_channels, 1)
+
+    def forward(self, x):
+        features = [layer(x) for layer in self.pool_layers] + [x]
+        out = torch.cat(features, dim=1)
+        out = self.conv(out)
+        return out
+
+# Define the model that combines the self-attention and spatial pyramidal pooling blocks
+class MyModel(nn.Module):
+    def __init__(self, in_channels):
+        super(MyModel, self).__init__()
+        self.self_attention = SelfAttention(in_channels)
+        self.spp = SpatialPyramidPooling(in_channels)
+
+    def forward(self, x):
+        # Compute self-attention map and attended feature map
