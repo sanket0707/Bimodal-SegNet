@@ -18,7 +18,7 @@ https://kuacae-my.sharepoint.com/personal/100049863_ku_ac_ae/_layouts/15/onedriv
 
 Object segmentation for robotic grasping under dynamic conditions often faces challenges such as occlusion, low light conditions, motion blur and object size variance. To address these challenges, we propose a Deep Learning network that fuses two types of visual signals, event-based data and RGB  frame data. The proposed Bimodal SegNet network has two distinct encoders,  one for each signal input and a spatial pyramidal pooling with atrous convolutions. Encoders capture rich contextual information by pooling the concatenated features at different resolutions while the decoder obtains sharp object boundaries. The evaluation of the proposed method undertakes five unique image degradation challenges including occlusion, blur, brightness, trajectory and scale variance on the Event-based Segmentation (ESD) Dataset. The evaluation results show a 6-10\% segmentation accuracy improvement over state-of-the-art methods in terms of mean intersection over the union and pixel accuracy.
 
-  <img width="746" alt="Architecture (1)" src="https://user-images.githubusercontent.com/43345233/226172600-fc122bdd-4d5e-45c9-b716-f18d89dc0598.png">
+ <img width="516" alt="Overview Architecture" src="https://github.com/sanket0707/Bimodal-SegNet/assets/43345233/4337f390-d334-4b7c-9ec8-7a2f37b9ca1b">
 
 # Code Implementation
 
