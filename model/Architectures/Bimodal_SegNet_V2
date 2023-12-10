@@ -1,0 +1,57 @@
+# Import necessary components
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from cdca import CDCA
+from apfa import APFABlock
+from encoder import EncoderBlock
+from decoder import DecoderBlock
+
+# The CDCA and APFA modules are defined in separate files `cdca.py` and `apfa.py`
+# and the EncoderBlock and DecoderBlock are defined with the necessary logic in `encoder.py` and `decoder.py`
+
+class BimodalSegNet(nn.Module):
+    def __init__(self, num_classes, atrous_rates, cdca_weights, encoder_features, decoder_features):
+        super(BimodalSegNet, self).__init__()
+        # Define the encoder and decoder features
+        self.rgb_encoder = EncoderBlock(features=encoder_features)
+        self.event_encoder = EncoderBlock(features=encoder_features)
+        self.decoder = DecoderBlock(features=decoder_features, num_classes=num_classes)
+
+        # Define the CDCA and APFA modules
+        self.cdca = CDCA(feature_dim=encoder_features[-1], weights=cdca_weights)
+        self.apfa = APFABlock(in_channels=sum(encoder_features), out_channels=encoder_features[-1],
+                              atrous_rates=atrous_rates, weights=apfa_weights)
+
+    def forward(self, rgb_input, event_input):
+        # Pass inputs through encoders
+        rgb_features = self.rgb_encoder(rgb_input)
+        event_features = self.event_encoder(event_input)
+        
+        # Apply CDCA at each downscaling stage
+        cdca_features = [self.cdca(rgb_feature, event_feature) for rgb_feature, event_feature in zip(rgb_features, event_features)]
+        
+        # Weight and concatenate features for APFA
+        weighted_cdca_features = [weight * feature for weight, feature in zip(cdca_weights, cdca_features)]
+        apfa_input = torch.cat(weighted_cdca_features, dim=1)
+        
+        # Pass through APFA module
+        apfa_output = self.apfa(apfa_input)
+        
+        # Decoder takes the output of the APFA module and the skip connections from the encoder
+        x_seg = self.decoder(apfa_output, cdca_features)
+        return x_seg
+
+
+# Define the network with the appropriate channel sizes, atrous rates, and weights
+num_classes = 2  # Replace with the actual number of classes
+atrous_rates = [1, 2, 4, 8]  #  atrous rates
+cdca_weights = [0.5, 1.0, 2.0, 4.0]  #  CDCA weights
+encoder_features = [64, 128, 256, 512]  #  feature sizes for encoder
+decoder_features = [512, 256, 128, 64]  #  feature sizes for decoder
+model = BimodalSegNet(num_classes, atrous_rates, cdca_weights, encoder_features, decoder_features)
+
+# Forward pass with example inputs
+rgb_input = torch.randn((1, 3, 296, 296))  #  RGB input tensor
+event_input = torch.randn((1, 3, 296, 296))  #  event input tensor
+output = model(rgb_input, event_input)
